@@ -44,8 +44,8 @@ const joiningDateSchema = z
 
 export const employeeSchema = z.object({
   employee_id: z.string(),
-  first_name: z.string(),
-  last_name: z.string(),
+  first_name: z.string().min(1,"first name is required"),
+  last_name: z.string().min(1,"last name is required"),
   salary: salarySchema,
   joining_date: joiningDateSchema,
 })satisfies z.ZodType<EmployeeDTO>;
