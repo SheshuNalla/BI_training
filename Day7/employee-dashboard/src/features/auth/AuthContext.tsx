@@ -5,39 +5,70 @@ import {
   type ReactNode,
 } from "react";
 
+import { rolePermissions } from "./roles";
+import type { Role, Permission } from "./roles";
+
 type AuthContextType = {
   token: string | null;
+  role: Role | null;
   isAuthenticated: boolean;
-  login: (token: string) => void;
+  login: (token: string, role: Role) => void;
   logout: () => void;
+  can: (permission: Permission) => boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem("access_token");
+  const [token, setToken] = useState<string | null>(() =>
+    localStorage.getItem("access_token"),
+  );
+
+  const [role, setRole] = useState<Role | null>(() => {
+    const storedRole = localStorage.getItem("user_role");
+
+    if (
+      storedRole === "admin" ||
+      storedRole === "manager" ||
+      storedRole === "employee"
+    ) {
+      return storedRole;
+    }
+
+    return null;
   });
 
-  const login = (newToken: string) => {
+  const login = (newToken: string, newRole: Role) => {
     localStorage.setItem("access_token", newToken);
+    localStorage.setItem("user_role", newRole);
+
     setToken(newToken);
+    setRole(newRole);
   };
 
   const logout = () => {
     localStorage.removeItem("access_token");
+    localStorage.removeItem("user_role");
+
     setToken(null);
+    setRole(null);
+  };
+
+  const can = (permission: Permission) => {
+    return role ? rolePermissions[role].includes(permission) : false;
   };
 
   return (
     <AuthContext.Provider
       value={{
         token,
-        isAuthenticated: Boolean(token),
+        role,
+        isAuthenticated: Boolean(token && role),
         login,
         logout,
+        can,
       }}
     >
       {children}

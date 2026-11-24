@@ -1,4 +1,6 @@
-
+import { useAuth } from "@/features/auth/AuthContext";
+import { Button } from "../ui/button";
+import { useNavigate } from "react-router";
 import { NavLink, Outlet } from "react-router";
 
 const navigation = [
@@ -8,12 +10,21 @@ const navigation = [
 ];
 
 export default function DashboardLayout() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b px-6 py-4">
-        <h1 className="text-xl font-bold">
-          Employee Management
-        </h1>
+      <header className="flex items-center justify-between border-b px-6 py-4">
+        <h1 className="text-xl font-bold">Employee Management</h1>
+
+        <Button variant="outline" onClick={handleLogout}>
+          Logout
+        </Button>
       </header>
 
       <div className="flex">

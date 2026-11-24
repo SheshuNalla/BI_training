@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "../auth/AuthContext";
 
 import {
   EmployeeDialog,
@@ -9,6 +10,7 @@ import { FilterBar } from "@/features/employees/FilterBar";
 
 function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const {can} = useAuth()
 
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("all");
@@ -47,8 +49,10 @@ function EmployeesPage() {
               Manage your team members.
             </p>
           </div>
-
-          <EmployeeDialog onSave={handleAddEmployee} />
+          {can("employee:create") && (
+            <EmployeeDialog onSave={handleAddEmployee} />
+          )}
+          
         </div>
 
         <FilterBar
