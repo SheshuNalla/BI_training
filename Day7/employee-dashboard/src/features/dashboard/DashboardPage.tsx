@@ -1,0 +1,11 @@
+
+export default function DashboardPage() {
+  return (
+    <section className="space-y-2">
+      <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+      <p className="text-muted-foreground">
+        Welcome to your Employee Management Dashboard.
+      </p>
+    </section>
+  );
+}
