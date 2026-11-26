@@ -1,192 +1,204 @@
-import {useForm} from "react-hook-form";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import  { toast } from "sonner";
-import { useState } from "react";
+import { toast } from "sonner";
+
 import { formSchema, type FormData } from "../schemas/formSchema";
-function RegistrationForm() {
-    
-    const existingEmployee = {
-      name: "john",
-      email: "john@ex.com",
-      phone: "9876543210",
-      department: "Engineering"
-    };
-    const [isEditMode, setIsEditMode] = useState(false);
+import {
+  useCreateEmployee,
+  useUpdateEmployee,
+} from "../hooks/useEmployees";
+import type { Employee } from "../services/employeeService";
 
-    const {register, handleSubmit, reset ,formState: {errors, isDirty, isSubmitting}} = useForm<FormData>({
-        resolver: zodResolver(formSchema)
-    });
-    const onSubmit = async (data: FormData) => {
-      try {
-        console.log("Submitting:", data);
+interface RegistrationFormProps {
+  selectedEmployee: Employee | null;
+  onSaved: () => void;
+}
 
-        await new Promise((resolve) =>
-            setTimeout(resolve, 2000)
-        );
+function RegistrationForm({
+  selectedEmployee,
+  onSaved,
+}: RegistrationFormProps) {
+  const createMutation = useCreateEmployee();
+  const updateMutation = useUpdateEmployee();
 
-        if(isEditMode) {
-          console.log("Employee Updated: " ,data)
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      department: "",
+    },
+  });
 
-          toast.success("Employee Updated successfully!");
-          setIsEditMode(false);
-        }else{
-          console.log("New employee created: ", data);
-          toast.success("New Employee created");
-        }
+  useEffect(() => {
+    if (selectedEmployee) {
+      reset({
+        name: selectedEmployee.name,
+        email: selectedEmployee.email,
+        phone: selectedEmployee.phone,
+        department: selectedEmployee.department,
+      });
+    } else {
+      reset({
+        name: "",
+        email: "",
+        phone: "",
+        department: "",
+      });
+    }
+  }, [selectedEmployee, reset]);
 
-        toast.success("Registration successfull");
-    
-        reset({
-          name: "",
-          email: "",
-          phone: "",
-          department: "",
+  const inputClass =
+    "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      if (selectedEmployee) {
+        await updateMutation.mutateAsync({
+          id: selectedEmployee.id,
+          employee: data,
         });
-      } catch (error) {
-        toast.error(
-          error instanceof Error
+
+        toast.success("Employee updated successfully!");
+      } else {
+        await createMutation.mutateAsync(data);
+        toast.success("Employee registered successfully!");
+      }
+
+      reset({
+        name: "",
+        email: "",
+        phone: "",
+        department: "",
+      });
+
+      onSaved();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
           ? error.message
           : "Something went wrong!"
-        );
-      }
-        
-    };
+      );
+    }
+  };
+
   return (
-    <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
+    <section className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-slate-800">
+          {selectedEmployee ? "Edit Employee" : "Register Employee"}
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          {selectedEmployee
+            ? "Update employee information."
+            : "Add a new employee to your organization."}
+        </p>
+      </div>
 
-      <h2
-        className="mb-6 text-2xl font-bold"
-      >
-        {isEditMode ? "Edit Employee" : "Register Employee"}
-      </h2>
-
-      <p className="mb-6 text-sm text-slate-500">
-        Enter your details to register.
-      </p>
-      <button
-        type="button"
-        onClick={() => {
-          reset(existingEmployee);
-          setIsEditMode(true);
-        }}
-        className="mb-4 rounded-lg bg-blue-600 px-4 py-2 text-white"
-      >
-        Edit Existing employee
-      </button>
-      {isEditMode && (
+      {selectedEmployee && (
         <button
           type="button"
-          onClick={() => {
-            setIsEditMode(false);
-            reset({
-              name: "",
-              email: "",
-              phone: "",
-              department: "",
-            });
-          }}
-          className="ml-3 rounded-lg border px-4 py-2"
+          onClick={onSaved}
+          className="mb-5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
         >
-          Cancel
+          Cancel Editing
         </button>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div>
-          <label className="mb-1 block text-sm font-medium">
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Full Name
           </label>
-
           <input
-            type="text"
             placeholder="Enter your name"
             {...register("name")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+            className={inputClass}
           />
-            {errors.name && (
-                <p className="mt-1 text-sm text-red-500">
-                {errors.name.message}
-                </p>
-            )}
+          {errors.name && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.name.message}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">
-            Email
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            Email Address
           </label>
-
           <input
             type="email"
             placeholder="Enter your email"
             {...register("email")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+            className={inputClass}
           />
-            {errors.email && (
-                <p className="mt-1 text-sm text-red-500">
-                {errors.email.message}
-                </p>
-            )}
+          {errors.email && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Phone Number
           </label>
-
           <input
-            type="text"
             placeholder="Enter 10-digit phone number"
             {...register("phone")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+            className={inputClass}
           />
-            {errors.phone && (
-                <p className="mt-1 text-sm text-red-500">
-                {errors.phone.message}
-                </p>
-            )}
+          {errors.phone && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.phone.message}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Department
           </label>
-
-          <select
-            {...register("department")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select department
-            </option>
-
+          <select {...register("department")} className={inputClass}>
+            <option value="" disabled>Select department</option>
             <option value="Engineering">Engineering</option>
             <option value="HR">HR</option>
             <option value="Marketing">Marketing</option>
             <option value="Finance">Finance</option>
           </select>
-            {errors.department && (
-                <p className="mt-1 text-sm text-red-500">
-                {errors.department.message}
-                </p>
-            )}
-        </div>
-        {/* Display form state */}
-            <p className="text-sm text-gray-500">
-                Form modified: {isDirty ? "Yes" : "No"}
+          {errors.department && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.department.message}
             </p>
+          )}
+        </div>
 
-            <button
-                type="submit"
-                disabled={!isDirty || isSubmitting}
-                className="w-full rounded-lg bg-blue-600 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                {isSubmitting ? "Saving..." : isEditMode ? "Update Employee" : "Register"}
-            </button>
+        <div className="border-t border-slate-100 pt-4">
+          <p className="mb-3 text-xs text-slate-500">
+            Form modified: {isDirty ? "Yes" : "No"}
+          </p>
 
+          <button
+            type="submit"
+            disabled={!isDirty || isSubmitting}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSubmitting
+              ? "Saving..."
+              : selectedEmployee
+                ? "Update Employee"
+                : "Register Employee"}
+          </button>
+        </div>
       </form>
-    </div>
+    </section>
   );
 }
 
