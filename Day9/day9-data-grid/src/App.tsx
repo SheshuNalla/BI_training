@@ -1,4 +1,5 @@
 import EmployeeTable from "./components/employees/EmployeeTable";
+import EmployeeCharts from "./components/dashboard/EmployeeCharts"
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           </p>
         </div>
 
+        <EmployeeCharts/>
         <EmployeeTable />
 
       </div>

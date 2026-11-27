@@ -1,4 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import {format , parseISO} from "date-fns";
 import type { Employee } from "../../types/employee";
 
 export const columns: ColumnDef<Employee>[] = [
@@ -30,6 +31,8 @@ export const columns: ColumnDef<Employee>[] = [
   {
     accessorKey: "joiningDate",
     header: "Joining Date",
+    cell: ({row}) => 
+      format(parseISO(row.original.joiningDate), "MMM-dd-yyyy"),
   },
   {
     accessorKey: "status",

@@ -3,40 +3,85 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  useReactTable,
+  useReactTable
 } from "@tanstack/react-table";
+import {
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from "lucide-react";
 
-import { useState } from "react";
+
+import EmptyState from "../ui/EmptyState";
+import CommandPalette from "../ui/CommandPalette";
 import type {ColumnFiltersState, SortingState } from "@tanstack/react-table";
-
-import { employees } from "../../data/employees";
+import type { Employee } from "../../types/employee";
 import { columns } from "./EmployeeColumns";
+import { useEffect, useState } from "react";
+import { getEmployees } from "../../lib/employeeApi";
 function EmployeeTable() {
+
+  const [data, setData] = useState<Employee[]>([]);
+  const [total, setTotal] = useState(0);
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 5,
+  });
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
-
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  useEffect(() => {
+    const limit = pagination.pageSize;
+    const offset = pagination.pageIndex * limit;
+
+    const response = getEmployees(limit, offset);
+
+    setData(response.data);
+    setTotal(response.total);
+  }, [pagination]);
+
   const table = useReactTable({
-  data: employees,
+  data,
   columns,
+
   state: {
     sorting,
     globalFilter,
-    columnFilters
+    columnFilters,
+    pagination,
   },
+
   onSortingChange: setSorting,
   onGlobalFilterChange: setGlobalFilter,
   onColumnFiltersChange: setColumnFilters,
-
+  onPaginationChange: setPagination,
 
   getCoreRowModel: getCoreRowModel(),
   getSortedRowModel: getSortedRowModel(),
   getFilteredRowModel: getFilteredRowModel(),
+
+  manualPagination: true,
+  pageCount: Math.ceil(total / pagination.pageSize),
 });
   
 
   return (
     <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+
+      <CommandPalette
+        onSearch={(value) => {
+          setGlobalFilter(value);
+        }}
+        onStatusFilter={(value) => {
+          table.getColumn("status")?.setFilterValue(value);
+        }}
+        onClear={() => {
+          setGlobalFilter("");
+          table.resetColumnFilters();
+        }}
+      />
 
       <div className="overflow-x-auto">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -129,11 +174,17 @@ function EmployeeTable() {
                           header.getContext()
                         )}
 
-                        {header.column.getIsSorted() === "asc" && "↑"}
+                        {header.column.getIsSorted() === "asc" && (
+                          <ArrowUp size={14} />
+                        )}
 
-                        {header.column.getIsSorted() === "desc" && "↓"}
+                        {header.column.getIsSorted() === "desc" && (
+                          <ArrowDown size={14} />
+                        )}
 
-                        {!header.column.getIsSorted() && "↕"}
+                        {!header.column.getIsSorted() && (
+                          <ArrowUpDown size={14} className="text-slate-400" />
+                        )}
                       </button>
                     )}
                   </th>
@@ -145,11 +196,8 @@ function EmployeeTable() {
           <tbody className="divide-y divide-slate-100">
             {table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-12 text-center text-slate-500"
-                >
-                  No employees found. Try changing your search or filters.
+                <td colSpan={columns.length}>
+                  <EmptyState title="No employees found" description="Try changing your search or filters"/>
                 </td>
               </tr>
             ) : (
@@ -175,6 +223,61 @@ function EmployeeTable() {
           </tbody>
 
         </table>
+        <div className="flex flex-col gap-4 border-t border-slate-200 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+          {/* Records Information */}
+          <p className="text-sm text-slate-500">
+            Showing{" "}
+            {total === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1}
+            {" "}to{" "}
+            {Math.min(
+              (pagination.pageIndex + 1) * pagination.pageSize,
+              total
+            )}
+            {" "}of {total} employees
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3">
+
+            {/* Page Size */}
+            <select
+              value={pagination.pageSize}
+              onChange={(e) => table.setPageSize(Number(e.target.value))}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value={5}>5 per page</option>
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+            </select>
+
+            {/* Previous Button */}
+            <button
+              type="button"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+
+            {/* Page Information */}
+            <span className="text-sm text-slate-600">
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
+            </span>
+
+            {/* Next Button */}
+            <button
+              type="button"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+
+          </div>
+        </div>
       </div>
 
     </div>
